@@ -16,8 +16,15 @@ conn = psycopg2.connect(
 cur = conn.cursor()
 
 def seed():
+    print("Czyszczenie bazy danych...")
+    tabele = ["Transakcje", "Wypieki", "Produkty", "Dostawcy", "Pracownicy", "Sklepy", "Adresy"]
+
+    for tabela in tabele:
+        cur.execute(f"TRUNCATE TABLE {tabela} RESTART IDENTITY CASCADE;")
+
+    print("Baza wyczyszczona. Generowanie nowych danych...")
     adresy_ids = []
-    for _ in range(20):
+    for _ in range(5):
         cur.execute(
             "INSERT INTO Adresy (Wojewodztwo, Miasto, Ulica, Numer_domu_lub_mieszkania) VALUES (%s, %s, %s, %s) RETURNING ID_adresu",
             (fake.administrative_unit(), fake.city(), fake.street_name(), fake.building_number())
@@ -40,7 +47,7 @@ def seed():
         )
 
     dostawcy_ids = []
-    for _ in range(10):
+    for _ in range(4):
         cur.execute(
             "INSERT INTO Dostawcy (Nazwa, ID_adresu) VALUES (%s, %s) RETURNING ID_dostawcy",
             (fake.company(), random.choice(adresy_ids))
@@ -48,21 +55,39 @@ def seed():
         dostawcy_ids.append(cur.fetchone()[0])
 
     produkty_ids = []
-    surowce = ['Mąka pszenna', 'Drożdże', 'Sól', 'Cukier', 'Ziarna słonecznika', 'Jaja']
-    for nazwa in surowce:
+    surowce_lista = ['Mąka pszenna', 'Drożdże', 'Sól', 'Cukier', 'Ziarna słonecznika', 'Jaja', 'Mleko']
+
+    for surowiec in surowce_lista:
         cur.execute(
             "INSERT INTO Produkty (Nazwa, ID_dostawcy) VALUES (%s, %s) RETURNING ID_produktu",
-            (nazwa, random.choice(dostawcy_ids))
+            (surowiec, random.choice(dostawcy_ids))
         )
         produkty_ids.append(cur.fetchone()[0])
 
-    wypieki_ids = []
-    rodzaje_wypieku = ['Chleb żytni', 'Bułka kajzerka', 'Rogal maślany', 'Chleb razowy']
-    for nazwa in rodzaje_wypieku:
+    for _ in range(30 - len(surowce_lista)):
+        nazwa_surowca = random.choice(surowce_lista)
         cur.execute(
-            "INSERT INTO Wypieki (Nazwa, Cena_produkcji, Czas_wypiekania, ID_produktu, Gramatura) VALUES (%s, %s, %s, %s, %s) RETURNING ID_wypieku",
-            (nazwa, random.uniform(1.0, 5.0), f"{random.randint(20, 60)} minutes",
-             random.choice(produkty_ids), random.choice([50, 100, 500]))
+            "INSERT INTO Produkty (Nazwa, ID_dostawcy) VALUES (%s, %s) RETURNING ID_produktu",
+            (nazwa_surowca, random.choice(dostawcy_ids))
+        )
+        produkty_ids.append(cur.fetchone()[0])
+
+
+    wypieki_ids = []
+    rodzaje_wypieku = ['Chleb żytni', 'Bułka kajzerka', 'Rogal maślany', 'Chleb razowy', 'Bagietka', 'Pączek']
+
+    for _ in range(20):
+        nazwa_wypieku = random.choice(rodzaje_wypieku)
+        cur.execute(
+            """INSERT INTO Wypieki (Nazwa, Cena_produkcji, Czas_wypiekania, ID_produktu, Gramatura)
+               VALUES (%s, %s, %s, %s, %s) RETURNING ID_wypieku""",
+            (
+                f"{nazwa_wypieku}",
+                random.uniform(1.0, 5.0),
+                f"{random.randint(20, 60)} minutes",
+                random.choice(produkty_ids),
+                random.choice([50, 100, 500])
+            )
         )
         wypieki_ids.append(cur.fetchone()[0])
 
