@@ -1,0 +1,52 @@
+CREATE TABLE Adresy (
+    ID_adresu SERIAL PRIMARY KEY,
+    Wojewodztwo VARCHAR(50),
+    Miasto VARCHAR(100),
+    Ulica VARCHAR(100),
+    Numer_domu_lub_mieszkania VARCHAR(20)
+);
+
+CREATE TABLE Sklepy (
+    ID_sklepu SERIAL PRIMARY KEY,
+    ID_adresu INTEGER REFERENCES Adresy(ID_adresu),
+    Nazwa VARCHAR(100),
+    Sklep_wlasnosciowy BOOLEAN
+);
+
+CREATE TABLE Pracownicy (
+    ID_pracownika SERIAL PRIMARY KEY,
+    Imie VARCHAR(50),
+    Nazwisko VARCHAR(50),
+    ID_adresu INTEGER REFERENCES Adresy(ID_adresu),
+    Stanowisko VARCHAR(50),
+    Zarobki DECIMAL(10, 2)
+);
+
+CREATE TABLE Dostawcy (
+    ID_dostawcy SERIAL PRIMARY KEY,
+    Nazwa VARCHAR(100),
+    ID_adresu INTEGER REFERENCES Adresy(ID_adresu)
+);
+
+CREATE TABLE Produkty (
+    ID_produktu SERIAL PRIMARY KEY,
+    Nazwa VARCHAR(100),
+    ID_dostawcy INTEGER REFERENCES Dostawcy(ID_dostawcy)
+);
+
+CREATE TABLE Wypieki (
+    ID_wypieku SERIAL PRIMARY KEY,
+    Nazwa VARCHAR(100),
+    Cena_produkcji DECIMAL(10, 2),
+    Czas_wypiekania INTERVAL, 
+    ID_produktu INTEGER REFERENCES Produkty(ID_produktu),
+    Gramatura INTEGER
+);
+
+CREATE TABLE Transakcje (
+    ID_transakcji SERIAL PRIMARY KEY,
+    ID_wypieku INTEGER REFERENCES Wypieki(ID_wypieku),
+    ID_sklepu INTEGER REFERENCES Sklepy(ID_sklepu),
+    Ilosc INTEGER,
+    Cena DECIMAL(10, 2)
+);
