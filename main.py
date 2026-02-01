@@ -30,7 +30,6 @@ class BakeryApp:
         filter_frame = ttk.LabelFrame(self.root, text="Filtrowanie i Ograniczanie Wymiarów (Slice & Dice)")
         filter_frame.pack(fill="x", padx=10, pady=5)
 
-        # Rząd 1: Sklep i Województwo
         ttk.Label(filter_frame, text="Sklep:").grid(row=0, column=0, padx=5, pady=5)
         self.sklep_cb = ttk.Combobox(filter_frame, state="readonly")
         self.sklep_cb.grid(row=0, column=1, padx=5)
@@ -39,7 +38,6 @@ class BakeryApp:
         self.woj_cb = ttk.Combobox(filter_frame, state="readonly")
         self.woj_cb.grid(row=0, column=3, padx=5)
 
-        # Rząd 2: Wypiek i Produkt
         ttk.Label(filter_frame, text="Wypiek:").grid(row=1, column=0, padx=5, pady=5)
         self.wypiek_cb = ttk.Combobox(filter_frame, state="readonly")
         self.wypiek_cb.grid(row=1, column=1, padx=5)
@@ -48,7 +46,6 @@ class BakeryApp:
         self.prod_cb = ttk.Combobox(filter_frame, state="readonly")
         self.prod_cb.grid(row=1, column=3, padx=5)
 
-        # Rząd 3: Dostawca i Cena Jednostkowa
         ttk.Label(filter_frame, text="Dostawca:").grid(row=2, column=0, padx=5, pady=5)
         self.dost_cb = ttk.Combobox(filter_frame, state="readonly")
         self.dost_cb.grid(row=2, column=1, padx=5)
@@ -64,7 +61,6 @@ class BakeryApp:
         self.max_price.insert(0, "9999")
         self.max_price.pack(side="left")
 
-        # Rząd 4: Suma Transakcji
         sum_frame = ttk.Frame(filter_frame)
         sum_frame.grid(row=3, column=0, columnspan=2, sticky="w", pady=5)
         ttk.Label(sum_frame, text="Suma od:").pack(side="left", padx=5)
@@ -76,7 +72,6 @@ class BakeryApp:
         self.max_sum.insert(0, "99999")
         self.max_sum.pack(side="left")
 
-        # Panel Operacji
         olap_frame = ttk.LabelFrame(self.root, text="Operacje OLAP")
         olap_frame.pack(fill="x", padx=10, pady=5)
         ttk.Button(olap_frame, text="Filtruj (Grupowanie)", command=self.load_data).grid(row=0, column=0, padx=5)
@@ -84,19 +79,16 @@ class BakeryApp:
         ttk.Button(olap_frame, text="Zwiń (Roll-up)", command=self.roll_up).grid(row=0, column=2, padx=5)
         ttk.Button(olap_frame, text="Eksport Excel", command=self.export_to_excel).grid(row=0, column=3, padx=5)
 
-        # Informacja o Drill-down
         self.status_label = ttk.Label(self.root,
                                       text="Podpowiedź: Użyj Roll-up, a potem kliknij dwukrotnie wiersz, aby wykonać Drill-down",
                                       foreground="blue")
         self.status_label.pack(pady=2)
 
-        # Tabela
         self.tree_frame = ttk.Frame(self.root)
         self.tree_frame.pack(fill="both", expand=True, padx=10, pady=10)
         self.tree = ttk.Treeview(self.tree_frame, show="headings")
         self.tree.pack(fill="both", expand=True)
 
-        # Bindowanie podwójnego kliknięcia dla DRILL-DOWN
         self.tree.bind("<Double-1>", self.on_double_click)
 
     def refresh_filters(self):
