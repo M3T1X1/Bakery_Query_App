@@ -1,4 +1,3 @@
-import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import pandas as pd
@@ -8,11 +7,12 @@ from sqlalchemy import create_engine, text
 class BakeryApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Bakery ERP System - Full OLAP & CRUD (Add/Delete Only)")
+        self.root.title("Bakery OLAP System")
         self.root.geometry("1300x950")
 
         self.db_url = "postgresql://postgres:postgres@localhost:5432/Bakery_Query_App"
         self.engine = create_engine(self.db_url)
+
         self.fk_map = {
             "id_adresu": ("Adresy", "id_adresu", "wojewodztwo || ' - ' || miasto || ' ' || ulica"),
             "id_sklepu": ("Sklepy", "id_sklepu", "nazwa"),
@@ -35,8 +35,8 @@ class BakeryApp:
         self.tab_olap = ttk.Frame(self.notebook)
         self.tab_crud = ttk.Frame(self.notebook)
 
-        self.notebook.add(self.tab_olap, text="📊 Analiza OLAP")
-        self.notebook.add(self.tab_crud, text="⚙️ Zarządzanie Danymi")
+        self.notebook.add(self.tab_olap, text="Analiza OLAP")
+        self.notebook.add(self.tab_crud, text="Zarządzanie Danymi")
 
         self.setup_olap_ui()
         self.setup_crud_ui()
@@ -68,50 +68,136 @@ class BakeryApp:
         filter_frame.pack(fill="x", padx=10, pady=5)
 
         ttk.Label(filter_frame, text="Sklep:").grid(row=0, column=0, padx=5)
-        self.sklep_cb = ttk.Combobox(filter_frame, state="readonly");
+        self.sklep_cb = ttk.Combobox(filter_frame, state="readonly")
         self.sklep_cb.grid(row=0, column=1)
 
         ttk.Label(filter_frame, text="Województwo:").grid(row=0, column=2, padx=5)
-        self.woj_cb = ttk.Combobox(filter_frame, state="readonly");
+        self.woj_cb = ttk.Combobox(filter_frame, state="readonly")
         self.woj_cb.grid(row=0, column=3)
 
         ttk.Label(filter_frame, text="Wypiek:").grid(row=1, column=0, padx=5)
-        self.wypiek_cb = ttk.Combobox(filter_frame, state="readonly");
+        self.wypiek_cb = ttk.Combobox(filter_frame, state="readonly")
         self.wypiek_cb.grid(row=1, column=1)
 
         ttk.Label(filter_frame, text="Produkt:").grid(row=1, column=2, padx=5)
-        self.prod_cb = ttk.Combobox(filter_frame, state="readonly");
+        self.prod_cb = ttk.Combobox(filter_frame, state="readonly")
         self.prod_cb.grid(row=1, column=3)
 
         m_frame = ttk.Frame(filter_frame)
         m_frame.grid(row=2, column=0, columnspan=4, sticky="w", pady=5)
 
         ttk.Label(m_frame, text="Cena min/max:").pack(side="left", padx=5)
-        self.min_price = ttk.Entry(m_frame, width=8);
-        self.min_price.insert(0, "0");
+        self.min_price = ttk.Entry(m_frame, width=8)
+        self.min_price.insert(0, "0")
         self.min_price.pack(side="left")
-        self.max_price = ttk.Entry(m_frame, width=8);
-        self.max_price.insert(0, "9999");
+        self.max_price = ttk.Entry(m_frame, width=8)
+        self.max_price.insert(0, "9999")
         self.max_price.pack(side="left")
 
         ttk.Label(m_frame, text="Suma min/max:").pack(side="left", padx=20)
-        self.min_total = ttk.Entry(m_frame, width=8);
-        self.min_total.insert(0, "0");
+        self.min_total = ttk.Entry(m_frame, width=8)
+        self.min_total.insert(0, "0")
         self.min_total.pack(side="left")
-        self.max_total = ttk.Entry(m_frame, width=8);
-        self.max_total.insert(0, "99999");
+        self.max_total = ttk.Entry(m_frame, width=8)
+        self.max_total.insert(0, "99999")
         self.max_total.pack(side="left")
+
+        report_frame = ttk.LabelFrame(self.tab_olap, text="Raporty Dedykowane")
+        report_frame.pack(fill="x", padx=10, pady=5)
+
+        self.report_selector = ttk.Combobox(report_frame, state="readonly", width=60)
+        self.report_selector['values'] = [
+            "1. TOP 5 Najlepiej sprzedających się wypieków (Ilościowo)",
+            "2. Ranking województw według całkowitego przychodu",
+            "3. Wydajność dostawców (Liczba dostarczanych produktów)",
+            "4. Średni koszt produkcji wypieku w podziale na główny składnik",
+            "5. Sklepy osiągające obrót powyżej średniej sieci"
+        ]
+        self.report_selector.pack(side="left", padx=10, pady=5)
+        ttk.Button(report_frame, text="Uruchom Raport", command=self.run_special_report).pack(side="left", padx=5)
 
         btn_frame = ttk.Frame(self.tab_olap)
         btn_frame.pack(fill="x", padx=10)
-        ttk.Button(btn_frame, text="Filtruj", command=self.load_data).pack(side="left", padx=2)
-        ttk.Button(btn_frame, text="Roll-up", command=self.roll_up).pack(side="left", padx=2)
-        ttk.Button(btn_frame, text="Pivot", command=self.pivot_data).pack(side="left", padx=2)
-        ttk.Button(btn_frame, text="Export", command=self.export_to_excel).pack(side="left", padx=2)
+        ttk.Button(btn_frame, text="Filtruj Główne", command=self.load_data).pack(side="left", padx=2)
+        ttk.Button(btn_frame, text="Roll-up (Województwa)", command=self.roll_up).pack(side="left", padx=2)
+        ttk.Button(btn_frame, text="Pivot (Sklep/Wypiek)", command=self.pivot_data).pack(side="left", padx=2)
+        ttk.Button(btn_frame, text="Eksportuj Widok", command=self.export_to_excel).pack(side="left", padx=2)
 
         self.tree_olap = ttk.Treeview(self.tab_olap, show="headings")
         self.tree_olap.pack(fill="both", expand=True, padx=10, pady=10)
         self.tree_olap.bind("<Double-1>", self.on_double_click)
+
+    def run_special_report(self):
+        """Implementacja 5 parametryzowanych zapytań SQL dla analityki."""
+        from tkinter import simpledialog
+        idx = self.report_selector.current()
+        if idx == -1:
+            messagebox.showwarning("Uwaga", "Wybierz raport z listy!")
+            return
+
+        # Definicje zapytań z placeholderami :param
+        queries = [
+            # 1. TOP N produktów (Parametr: Liczba rekordów)
+            ("""SELECT w.Nazwa AS "Wypiek", SUM(t.Ilosc) AS "Suma Sprzedaży"
+                FROM Transakcje t
+                         JOIN Wypieki w ON t.ID_wypieku = w.ID_wypieku
+                GROUP BY w.Nazwa
+                ORDER BY "Suma Sprzedaży" DESC LIMIT :limit""",
+             "Podaj liczbę produktów do wyświetlenia (np. 5):", "limit", int),
+
+            # 2. Ranking województw powyżej kwoty (Parametr: Min przychód)
+            ("""SELECT a.Wojewodztwo, SUM(t.Ilosc * t.Cena) AS "Przychód Razem"
+                FROM Transakcje t
+                         JOIN Sklepy s ON t.ID_sklepu = s.ID_sklepu
+                         JOIN Adresy a ON s.ID_adresu = a.ID_adresu
+                GROUP BY a.Wojewodztwo
+                HAVING SUM(t.Ilosc * t.Cena) > :min_revenue
+                ORDER BY "Przychód Razem" DESC""",
+             "Pokaż województwa z przychodem większym niż (np. 1000):", "min_revenue", float),
+
+            # 3. Produkty konkretnego dostawcy (Parametr: Nazwa dostawcy - użycie LIKE)
+            ("""SELECT d.Nazwa AS "Dostawca", p.Nazwa AS "Produkt", p.Cena AS "Cena"
+                FROM Dostawcy d
+                         JOIN Produkty p ON d.ID_dostawcy = p.ID_dostawcy
+                WHERE d.Nazwa ILIKE :dostawca""",
+             "Podaj nazwę dostawcy (możesz użyć %):", "dostawca", str),
+
+            # 4. Wypieki droższe niż średnia o X (Parametr: Kwota nadwyżki)
+            ("""SELECT Nazwa, Cena_produkcji AS "Koszt"
+                FROM Wypieki
+                WHERE Cena_produkcji > (SELECT AVG(Cena_produkcji) FROM Wypieki) + :bonus""",
+             "Pokaż wypieki droższe od średniej o (np. 2.50):", "bonus", float),
+
+            # 5. Sklepy w konkretnym mieście (Parametr: Nazwa miasta)
+            ("""SELECT s.Nazwa AS "Sklep", a.Miasto, a.Ulica
+                FROM Sklepy s
+                         JOIN Adresy a ON s.ID_adresu = a.ID_adresu
+                WHERE a.Miasto ILIKE :miasto""",
+             "Podaj nazwę miasta:", "miasto", str)
+        ]
+
+        sql, prompt, param_name, param_type = queries[idx]
+
+        # Pobranie parametru od użytkownika
+        user_input = simpledialog.askstring("Parametr raportu", prompt)
+        if user_input is None: return  # Użytkownik kliknął Anuluj
+
+        try:
+            # Konwersja typu i przygotowanie parametrów
+            val = param_type(user_input.replace(",", "."))
+            params = {param_name: val}
+
+            with self.engine.connect() as conn:
+                df = pd.read_sql_query(text(sql), conn, params=params)
+                self.current_df = df
+                self.display_df(self.tree_olap, df)
+
+                if df.empty:
+                    messagebox.showinfo("Informacja", "Brak wyników dla podanego parametru.")
+        except ValueError:
+            messagebox.showerror("Błąd", "Nieprawidłowy format danych (oczekiwano liczby).")
+        except Exception as e:
+            messagebox.showerror("Błąd SQL", str(e))
 
     def fetch_from_db(self):
         query = text("""SELECT s.Nazwa            as sklep,
@@ -141,7 +227,6 @@ class BakeryApp:
             if self.prod_cb.get() != "Wszystkie": df = df[df['produkt'] == self.prod_cb.get()]
 
             df = df[(df['suma'] >= float(self.min_total.get())) & (df['suma'] <= float(self.max_total.get()))]
-
             return df
         except Exception as e:
             print(f"Błąd OLAP: {e}")
@@ -154,8 +239,6 @@ class BakeryApp:
     def roll_up(self):
         if not self.current_df.empty:
             summary = self.current_df.groupby('wojewodztwo').agg({'ilosc': 'sum', 'suma': 'sum'}).reset_index()
-            summary = summary[
-                (summary['suma'] >= float(self.min_total.get())) & (summary['suma'] <= float(self.max_total.get()))]
             self.display_df(self.tree_olap, summary)
 
     def pivot_data(self):
@@ -165,12 +248,15 @@ class BakeryApp:
             self.display_df(self.tree_olap, pivot)
 
     def on_double_click(self, event):
-        item = self.tree_olap.selection()[0]
-        values = self.tree_olap.item(item, "values")
-        if "wojewodztwo" in self.tree_olap["columns"]:
-            idx = list(self.tree_olap["columns"]).index("wojewodztwo")
-            self.woj_cb.set(values[idx]);
-            self.load_data()
+        try:
+            item = self.tree_olap.selection()[0]
+            values = self.tree_olap.item(item, "values")
+            if "wojewodztwo" in self.tree_olap["columns"]:
+                idx = list(self.tree_olap["columns"]).index("wojewodztwo")
+                self.woj_cb.set(values[idx])
+                self.load_data()
+        except:
+            pass
 
     def setup_crud_ui(self):
         ctrl_frame = ttk.Frame(self.tab_crud)
@@ -203,7 +289,7 @@ class BakeryApp:
             try:
                 with self.engine.begin() as conn:
                     conn.execute(text(f"DELETE FROM {table} WHERE {pk_col} = :id"), {"id": pk_val})
-                self.load_crud_data();
+                self.load_crud_data()
                 self.refresh_filters()
             except:
                 messagebox.showerror("Błąd", "Rekord jest powiązany z innymi danymi.")
@@ -221,18 +307,18 @@ class BakeryApp:
             ttk.Label(win, text=f"{col}:").grid(row=i, column=0, padx=10, pady=5, sticky="w")
             if low_col in self.fk_map:
                 opts = self.get_fk_options(low_col)
-                labels = [o[1] for o in opts];
+                labels = [o[1] for o in opts]
                 ids = [o[0] for o in opts]
                 cb = ttk.Combobox(win, values=labels, width=33, state="readonly")
                 cb.grid(row=i, column=1, padx=10, pady=5)
                 entries[col] = (cb, ids, "fk")
             elif "wlasnosciowy" in low_col:
                 cb = ttk.Combobox(win, values=["Tak", "Nie"], width=33, state="readonly")
-                cb.grid(row=i, column=1, padx=10, pady=5);
+                cb.grid(row=i, column=1, padx=10, pady=5)
                 cb.set("Tak")
                 entries[col] = (cb, None, "bool")
             else:
-                ent = ttk.Entry(win, width=35);
+                ent = ttk.Entry(win, width=35)
                 ent.grid(row=i, column=1, padx=10, pady=5)
                 entries[col] = ent
 
@@ -251,7 +337,7 @@ class BakeryApp:
                         widget, extra, mode = obj
                         if mode == "fk":
                             if widget.current() == -1:
-                                messagebox.showwarning("Uwaga", f"Wybierz wartość dla: {c}");
+                                messagebox.showwarning("Uwaga", f"Wybierz wartość dla: {c}")
                                 return
                             data[col_key] = extra[widget.current()]
                         else:
@@ -259,26 +345,27 @@ class BakeryApp:
                     else:
                         val = obj.get().strip()
                         if val == "":
-                            messagebox.showwarning("Uwaga", f"Pole {c} jest puste!");
+                            messagebox.showwarning("Uwaga", f"Pole {c} jest puste!")
                             return
                         rule = v_rules.get(col_key)
                         if rule == "alpha":
                             if not val.replace(" ", "").isalpha():
-                                messagebox.showwarning("Błąd", f"Pole {c} może zawierać tylko litery!");
+                                messagebox.showwarning("Błąd", f"Pole {c} tylko litery!")
                                 return
                             data[col_key] = val
                         elif rule == "float":
                             try:
                                 data[col_key] = float(val.replace(",", "."))
                             except:
-                                messagebox.showwarning("Błąd", f"Pole {c} musi być liczbą!"); return
+                                messagebox.showwarning("Błąd", f"{c} musi być liczbą!"); return
                         elif rule == "datetime":
                             try:
                                 data[col_key] = pd.to_datetime(val, dayfirst=True)
                             except:
-                                messagebox.showwarning("Błąd", f"Pole {c}: wymagany format DD.MM.RRRR"); return
+                                messagebox.showwarning("Błąd", f"{c}: format DD.MM.RRRR"); return
                         else:
                             data[col_key] = val
+
                 if table in self.unique_fields:
                     u_col = self.unique_fields[table].lower()
                     u_val = data.get(u_col)
@@ -286,19 +373,20 @@ class BakeryApp:
                         exists = conn.execute(text(f"SELECT COUNT(*) FROM {table} WHERE LOWER({u_col}) = LOWER(:v)"),
                                               {"v": str(u_val)}).scalar()
                         if exists > 0:
-                            messagebox.showerror("Błąd", f"Wartość '{u_val}' już istnieje w {table}!");
+                            messagebox.showerror("Błąd", f"Wartość '{u_val}' już istnieje!")
                             return
+
                 with self.engine.begin() as conn:
                     fields = list(data.keys())
                     placeholders = ", ".join([f":{f}" for f in fields])
                     sql = f"INSERT INTO {table} ({', '.join(fields)}) VALUES ({placeholders})"
                     conn.execute(text(sql), data)
-                win.destroy();
-                self.load_crud_data();
+                win.destroy()
+                self.load_crud_data()
                 self.refresh_filters()
                 messagebox.showinfo("Sukces", "Pomyślnie dodano rekord!")
             except Exception as e:
-                messagebox.showerror("Błąd Krytyczny", f"Nie udało się zapisać:\n{str(e)}")
+                messagebox.showerror("Błąd", str(e))
 
         ttk.Button(win, text="Zapisz", command=save).grid(row=len(cols) + 1, columnspan=2, pady=15)
 
@@ -306,23 +394,27 @@ class BakeryApp:
         tree.delete(*tree.get_children())
         if df.empty: return
         tree["columns"] = list(df.columns)
-        for col in df.columns: tree.heading(col, text=col.upper()); tree.column(col, width=110, anchor="center")
+        for col in df.columns:
+            tree.heading(col, text=col.upper())
+            tree.column(col, width=120, anchor="center")
         for _, row in df.iterrows(): tree.insert("", "end", values=list(row))
 
     def refresh_filters(self):
-        self.sklep_cb['values'] = self.get_distinct_values("Sklepy", "nazwa");
+        self.sklep_cb['values'] = self.get_distinct_values("Sklepy", "nazwa")
         self.sklep_cb.set("Wszystkie")
-        self.woj_cb['values'] = self.get_distinct_values("Adresy", "wojewodztwo");
+        self.woj_cb['values'] = self.get_distinct_values("Adresy", "wojewodztwo")
         self.woj_cb.set("Wszystkie")
-        self.wypiek_cb['values'] = self.get_distinct_values("Wypieki", "nazwa");
+        self.wypiek_cb['values'] = self.get_distinct_values("Wypieki", "nazwa")
         self.wypiek_cb.set("Wszystkie")
-        self.prod_cb['values'] = self.get_distinct_values("Produkty", "nazwa");
+        self.prod_cb['values'] = self.get_distinct_values("Produkty", "nazwa")
         self.prod_cb.set("Wszystkie")
 
     def export_to_excel(self):
         if hasattr(self, 'current_df') and not self.current_df.empty:
             path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")])
-            if path: self.current_df.to_excel(path, index=False); messagebox.showinfo("Sukces", "Eksport OK!")
+            if path:
+                self.current_df.to_excel(path, index=False)
+                messagebox.showinfo("Sukces", "Dane wyeksportowane pomyślnie!")
 
 
 if __name__ == "__main__":
