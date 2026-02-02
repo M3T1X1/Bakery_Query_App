@@ -128,16 +128,13 @@ class BakeryApp:
         self.tree_olap.bind("<Double-1>", self.on_double_click)
 
     def run_special_report(self):
-        """Implementacja 5 parametryzowanych zapytań SQL dla analityki."""
         from tkinter import simpledialog
         idx = self.report_selector.current()
         if idx == -1:
             messagebox.showwarning("Uwaga", "Wybierz raport z listy!")
             return
 
-        # Definicje zapytań z placeholderami :param
         queries = [
-            # 1. TOP N produktów (Parametr: Liczba rekordów)
             ("""SELECT w.Nazwa AS "Wypiek", SUM(t.Ilosc) AS "Suma Sprzedaży"
                 FROM Transakcje t
                          JOIN Wypieki w ON t.ID_wypieku = w.ID_wypieku
@@ -145,7 +142,6 @@ class BakeryApp:
                 ORDER BY "Suma Sprzedaży" DESC LIMIT :limit""",
              "Podaj liczbę produktów do wyświetlenia (np. 5):", "limit", int),
 
-            # 2. Ranking województw powyżej kwoty (Parametr: Min przychód)
             ("""SELECT a.Wojewodztwo, SUM(t.Ilosc * t.Cena) AS "Przychód Razem"
                 FROM Transakcje t
                          JOIN Sklepy s ON t.ID_sklepu = s.ID_sklepu
@@ -155,20 +151,17 @@ class BakeryApp:
                 ORDER BY "Przychód Razem" DESC""",
              "Pokaż województwa z przychodem większym niż (np. 1000):", "min_revenue", float),
 
-            # 3. Produkty konkretnego dostawcy (Parametr: Nazwa dostawcy - użycie LIKE)
             ("""SELECT d.Nazwa AS "Dostawca", p.Nazwa AS "Produkt", p.Cena AS "Cena"
                 FROM Dostawcy d
                          JOIN Produkty p ON d.ID_dostawcy = p.ID_dostawcy
                 WHERE d.Nazwa ILIKE :dostawca""",
              "Podaj nazwę dostawcy (możesz użyć %):", "dostawca", str),
 
-            # 4. Wypieki droższe niż średnia o X (Parametr: Kwota nadwyżki)
             ("""SELECT Nazwa, Cena_produkcji AS "Koszt"
                 FROM Wypieki
                 WHERE Cena_produkcji > (SELECT AVG(Cena_produkcji) FROM Wypieki) + :bonus""",
              "Pokaż wypieki droższe od średniej o (np. 2.50):", "bonus", float),
 
-            # 5. Sklepy w konkretnym mieście (Parametr: Nazwa miasta)
             ("""SELECT s.Nazwa AS "Sklep", a.Miasto, a.Ulica
                 FROM Sklepy s
                          JOIN Adresy a ON s.ID_adresu = a.ID_adresu
@@ -178,12 +171,10 @@ class BakeryApp:
 
         sql, prompt, param_name, param_type = queries[idx]
 
-        # Pobranie parametru od użytkownika
         user_input = simpledialog.askstring("Parametr raportu", prompt)
-        if user_input is None: return  # Użytkownik kliknął Anuluj
+        if user_input is None: return
 
         try:
-            # Konwersja typu i przygotowanie parametrów
             val = param_type(user_input.replace(",", "."))
             params = {param_name: val}
 
