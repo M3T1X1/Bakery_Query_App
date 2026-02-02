@@ -11,11 +11,8 @@ class BakeryApp:
         self.root.title("Bakery ERP System - Full OLAP & CRUD (Add/Delete Only)")
         self.root.geometry("1300x950")
 
-        # Konfiguracja połączenia
         self.db_url = "postgresql://postgres:postgres@localhost:5432/Bakery_Query_App"
         self.engine = create_engine(self.db_url)
-
-        # Mapa relacji dla kluczy obcych
         self.fk_map = {
             "id_adresu": ("Adresy", "id_adresu", "wojewodztwo || ' - ' || miasto || ' ' || ulica"),
             "id_sklepu": ("Sklepy", "id_sklepu", "nazwa"),
@@ -24,7 +21,6 @@ class BakeryApp:
             "id_wypieku": ("Wypieki", "id_wypieku", "nazwa")
         }
 
-        # Definicja kolumn unikalnych
         self.unique_fields = {
             "Sklepy": "nazwa",
             "Dostawcy": "nazwa",
@@ -47,7 +43,6 @@ class BakeryApp:
         self.refresh_filters()
         self.load_data()
 
-    # --- POMOCNICZE ---
     def get_distinct_values(self, table, column):
         try:
             query = f"SELECT DISTINCT {column} FROM {table} ORDER BY {column}"
@@ -68,12 +63,10 @@ class BakeryApp:
         except:
             return []
 
-    # --- OLAP ---
     def setup_olap_ui(self):
         filter_frame = ttk.LabelFrame(self.tab_olap, text="Slice & Dice (Filtrowanie)")
         filter_frame.pack(fill="x", padx=10, pady=5)
 
-        # Filtry wymiarów
         ttk.Label(filter_frame, text="Sklep:").grid(row=0, column=0, padx=5)
         self.sklep_cb = ttk.Combobox(filter_frame, state="readonly");
         self.sklep_cb.grid(row=0, column=1)
@@ -90,7 +83,6 @@ class BakeryApp:
         self.prod_cb = ttk.Combobox(filter_frame, state="readonly");
         self.prod_cb.grid(row=1, column=3)
 
-        # Filtry miar (Cena i Suma)
         m_frame = ttk.Frame(filter_frame)
         m_frame.grid(row=2, column=0, columnspan=4, sticky="w", pady=5)
 
@@ -143,13 +135,11 @@ class BakeryApp:
                     "max_p": float(self.max_price.get())
                 })
 
-            # Filtry wymiarów
             if self.sklep_cb.get() != "Wszystkie": df = df[df['sklep'] == self.sklep_cb.get()]
             if self.woj_cb.get() != "Wszystkie": df = df[df['wojewodztwo'] == self.woj_cb.get()]
             if self.wypiek_cb.get() != "Wszystkie": df = df[df['wypiek'] == self.wypiek_cb.get()]
             if self.prod_cb.get() != "Wszystkie": df = df[df['produkt'] == self.prod_cb.get()]
 
-            # FILTROWANIE PO SUMIE
             df = df[(df['suma'] >= float(self.min_total.get())) & (df['suma'] <= float(self.max_total.get()))]
 
             return df
@@ -164,7 +154,6 @@ class BakeryApp:
     def roll_up(self):
         if not self.current_df.empty:
             summary = self.current_df.groupby('wojewodztwo').agg({'ilosc': 'sum', 'suma': 'sum'}).reset_index()
-            # Po Roll-upie też możemy chcieć filtrować po nowej sumie zagregowanej
             summary = summary[
                 (summary['suma'] >= float(self.min_total.get())) & (summary['suma'] <= float(self.max_total.get()))]
             self.display_df(self.tree_olap, summary)
@@ -183,7 +172,6 @@ class BakeryApp:
             self.woj_cb.set(values[idx]);
             self.load_data()
 
-    # --- CRUD (ADD & DELETE ONLY) ---
     def setup_crud_ui(self):
         ctrl_frame = ttk.Frame(self.tab_crud)
         ctrl_frame.pack(fill="x", padx=10, pady=10)
@@ -314,7 +302,6 @@ class BakeryApp:
 
         ttk.Button(win, text="Zapisz", command=save).grid(row=len(cols) + 1, columnspan=2, pady=15)
 
-    # --- WSPÓLNE ---
     def display_df(self, tree, df):
         tree.delete(*tree.get_children())
         if df.empty: return
